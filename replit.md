@@ -1,6 +1,6 @@
-# [Project name]
+# Rail Cut Calculator
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Plan low-waste cuts from 6-meter aluminium rails by reusing saved dimensions and entering the required quantity for each.
 
 ## Run & Operate
 
@@ -22,15 +22,26 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/rail-cut-calculator/src/App.tsx` — calculator workspace and interaction states
+- `artifacts/api-server/src/routes/` — dimension collection and cut-plan endpoints
+- `artifacts/api-server/src/lib/cut-plan-optimizer.ts` — rail packing domain logic
+- `lib/db/src/schema/dimensions.ts` — saved dimension table
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts
+- `artifacts/rail-cut-calculator/src/index.css` — visual theme and workshop surface
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- API contracts are defined in OpenAPI and generated into typed React Query hooks and Zod schemas.
+- The cut planner uses a strategy boundary: best-fit decreasing provides a fast upper bound, then bounded branch-and-bound searches for fewer rails.
+- Route handlers stay thin; validation and persistence live at the boundary while optimization remains framework-independent.
+- Dimensions are stored as reusable server-side records and the initial set is seeded with the common 6-meter stock cuts.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Manage reusable aluminium cut dimensions.
+- Enter a quantity for each saved dimension.
+- Calculate a low-waste arrangement across 6-meter rails.
+- Review each rail's cuts, used length, and offcut.
 
 ## User preferences
 

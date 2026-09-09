@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Rail Cut Calculator"
+description = "A practical aluminium rail cutting calculator for managing reusable cut dimensions, entering required quantities, and generating low-waste cutting plans from 6-meter rails."
+version = "1.0.0"
+id = "artifacts/rail-cut-calculator"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25662
+
+[services.development]
+run = "pnpm --filter @workspace/rail-cut-calculator run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/rail-cut-calculator", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/rail-cut-calculator/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25662"
+BASE_PATH = "/"

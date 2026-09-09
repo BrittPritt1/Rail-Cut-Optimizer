@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dimensions
+    description: Reusable aluminium rail cut dimensions
+  - name: cutting
+    description: Low-waste rail cutting calculations
 paths:
   /healthz:
     get:
@@ -24,7 +28,92 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dimensions:
+    get:
+      operationId: listDimensions
+      tags: [dimensions]
+      summary: List saved cut dimensions
+      responses:
+        "200":
+          description: Saved dimensions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dimension"
+    post:
+      operationId: createDimension
+      tags: [dimensions]
+      summary: Add a reusable cut dimension
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DimensionInput"
+      responses:
+        "201":
+          description: Created dimension
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dimension"
+        "400":
+          description: Invalid dimension
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /dimensions/{id}:
+    delete:
+      operationId: deleteDimension
+      tags: [dimensions]
+      summary: Delete a saved cut dimension
+      parameters:
+        - $ref: "#/components/parameters/DimensionId"
+      responses:
+        "204":
+          description: Dimension deleted
+        "404":
+          description: Dimension not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cut-plans:
+    post:
+      operationId: calculateCutPlan
+      tags: [cutting]
+      summary: Calculate a low-waste cutting plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CutPlanInput"
+      responses:
+        "200":
+          description: Optimized cutting plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CutPlan"
+        "400":
+          description: Invalid cutting request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
+  parameters:
+    DimensionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +122,102 @@ components:
           type: string
       required:
         - status
+    Dimension:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        length:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 6
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, length, createdAt]
+    DimensionInput:
+      type: object
+      properties:
+        length:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 6
+      required: [length]
+    CutRequest:
+      type: object
+      properties:
+        dimensionId:
+          type: integer
+          minimum: 1
+        length:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 6
+        quantity:
+          type: integer
+          minimum: 1
+      required: [dimensionId, length, quantity]
+    CutPlanInput:
+      type: object
+      properties:
+        requests:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CutRequest"
+      required: [requests]
+    CutPiece:
+      type: object
+      properties:
+        dimensionId:
+          type: integer
+          minimum: 1
+        length:
+          type: number
+          exclusiveMinimum: 0
+      required: [dimensionId, length]
+    RailPlan:
+      type: object
+      properties:
+        railNumber:
+          type: integer
+          minimum: 1
+        pieces:
+          type: array
+          items:
+            $ref: "#/components/schemas/CutPiece"
+        used:
+          type: number
+          minimum: 0
+        waste:
+          type: number
+          minimum: 0
+      required: [railNumber, pieces, used, waste]
+    CutPlan:
+      type: object
+      properties:
+        stockLength:
+          type: number
+          const: 6
+        totalRequested:
+          type: number
+          minimum: 0
+        railCount:
+          type: integer
+          minimum: 0
+        totalWaste:
+          type: number
+          minimum: 0
+        rails:
+          type: array
+          items:
+            $ref: "#/components/schemas/RailPlan"
+      required: [stockLength, totalRequested, railCount, totalWaste, rails]
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
 
