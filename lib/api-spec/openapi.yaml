@@ -193,7 +193,10 @@ components:
         waste:
           type: number
           minimum: 0
-      required: [railNumber, pieces, used, waste]
+        reusableOffcut:
+          type: number
+          minimum: 0
+      required: [railNumber, pieces, used, waste, reusableOffcut]
     CutPlan:
       type: object
       properties:
@@ -209,11 +212,14 @@ components:
         totalWaste:
           type: number
           minimum: 0
+        totalReusableOffcut:
+          type: number
+          minimum: 0
         rails:
           type: array
           items:
             $ref: "#/components/schemas/RailPlan"
-      required: [stockLength, totalRequested, railCount, totalWaste, rails]
+      required: [stockLength, totalRequested, railCount, totalWaste, totalReusableOffcut, rails]
     Error:
       type: object
       properties:

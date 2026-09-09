@@ -183,7 +183,17 @@ function RailVisual({ rail }: { rail: CutPlan['rails'][number] }) {
           <span className="mono flex h-6 w-6 items-center justify-center rounded-md bg-sidebar text-[10px] text-sidebar-foreground">{String(rail.railNumber).padStart(2, '0')}</span>
           <span className="text-sm font-bold">Rail {rail.railNumber}</span>
         </div>
-        <span className="mono text-xs text-muted-foreground">{formatLength(rail.waste)} waste</span>
+        <div className="flex items-center gap-2 text-xs">
+          {rail.reusableOffcut > 0 && (
+            <span className="mono text-accent-foreground">{formatLength(rail.reusableOffcut)} reusable offcut</span>
+          )}
+          {rail.waste > 0 && (
+            <span className="mono text-muted-foreground">{formatLength(rail.waste)} waste</span>
+          )}
+          {rail.reusableOffcut === 0 && rail.waste === 0 && (
+            <span className="mono text-muted-foreground">No offcut</span>
+          )}
+        </div>
       </div>
       <div className="relative h-9 overflow-hidden rounded-md border border-border bg-muted/60">
         <div className="absolute inset-y-0 left-0 flex" style={{ width: `${Math.min((rail.used / stockLength) * 100, 100)}%` }}>
@@ -521,7 +531,7 @@ function Home() {
                   </div>
                 ) : (
                   <div className="fade-up">
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-4">
                       <div className="rounded-xl border border-border bg-card px-4 py-4">
                         <div className="mono text-2xl font-medium" data-testid="text-plan-rail-count">{plan.railCount}</div>
                         <div className="mt-1 text-xs text-muted-foreground">stock rails needed</div>
@@ -532,7 +542,11 @@ function Home() {
                       </div>
                       <div className="rounded-xl border border-primary/40 bg-primary/15 px-4 py-4">
                         <div className="mono text-2xl font-medium" data-testid="text-plan-total-waste">{formatLength(plan.totalWaste)}</div>
-                        <div className="mt-1 text-xs text-foreground/65">total offcut</div>
+                        <div className="mt-1 text-xs text-foreground/65">unusable waste</div>
+                      </div>
+                      <div className="rounded-xl border border-accent/50 bg-accent/20 px-4 py-4">
+                        <div className="mono text-2xl font-medium" data-testid="text-plan-reusable-offcut">{formatLength(plan.totalReusableOffcut)}</div>
+                        <div className="mt-1 text-xs text-accent-foreground/75">reusable offcut</div>
                       </div>
                     </div>
                     <div className="mt-4 grid gap-3">

@@ -19,6 +19,7 @@ export type RailPlan = {
   pieces: Array<{ dimensionId: number; length: number }>;
   used: number;
   waste: number;
+  reusableOffcut: number;
 };
 
 export type CutPlan = {
@@ -26,6 +27,7 @@ export type CutPlan = {
   totalRequested: number;
   railCount: number;
   totalWaste: number;
+  totalReusableOffcut: number;
   rails: RailPlan[];
 };
 
@@ -157,7 +159,7 @@ export class CutPlanOptimizer {
     private readonly strategy: CutPlanStrategy = new MinimumRailCutStrategy(),
   ) {}
 
-  calculate(requests: CutRequest[]): CutPlan {
+  calculate(requests: CutRequest[], reusableLengths: number[] = []): CutPlan {
     const pieces = requests.flatMap((request) =>
       Array.from({ length: request.quantity }, () => {
         const lengthMm = Math.round(request.length * SCALE);
@@ -174,20 +176,44 @@ export class CutPlanOptimizer {
       (total, piece) => total + piece.lengthMm,
       0,
     );
+    const reusableLengthMm = reusableLengths
+      .map((length) => Math.round(length * SCALE))
+      .filter((length) => length > 0 && length <= STOCK_LENGTH_MM);
+    const classifiedRails = rails.map((rail) => {
+      const remainingMm = rail.remainingMm;
+      const isReusable = reusableLengthMm.some(
+        (length) => length <= remainingMm,
+      );
+
+      return {
+        ...rail,
+        wasteMm: isReusable ? 0 : remainingMm,
+        reusableOffcutMm: isReusable ? remainingMm : 0,
+      };
+    });
 
     return {
       stockLength: 6,
       totalRequested: this.toMeters(totalRequestedMm),
       railCount: rails.length,
-      totalWaste: this.toMeters(rails.length * STOCK_LENGTH_MM - totalRequestedMm),
-      rails: rails.map((rail, index) => ({
+      totalWaste: this.toMeters(
+        classifiedRails.reduce((total, rail) => total + rail.wasteMm, 0),
+      ),
+      totalReusableOffcut: this.toMeters(
+        classifiedRails.reduce(
+          (total, rail) => total + rail.reusableOffcutMm,
+          0,
+        ),
+      ),
+      rails: classifiedRails.map((rail, index) => ({
         railNumber: index + 1,
         pieces: rail.pieces.map((piece) => ({
           dimensionId: piece.dimensionId,
           length: this.toMeters(piece.lengthMm),
         })),
         used: this.toMeters(STOCK_LENGTH_MM - rail.remainingMm),
-        waste: this.toMeters(rail.remainingMm),
+        waste: this.toMeters(rail.wasteMm),
+        reusableOffcut: this.toMeters(rail.reusableOffcutMm),
       })),
     };
   }

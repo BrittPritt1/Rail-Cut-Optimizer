@@ -15,4 +15,6 @@ export interface RailPlan {
   used: number;
   /** @minimum 0 */
   waste: number;
+  /** @minimum 0 */
+  reusableOffcut: number;
 }

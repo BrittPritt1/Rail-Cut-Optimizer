@@ -15,5 +15,7 @@ export interface CutPlan {
   railCount: number;
   /** @minimum 0 */
   totalWaste: number;
+  /** @minimum 0 */
+  totalReusableOffcut: number;
   rails: RailPlan[];
 }

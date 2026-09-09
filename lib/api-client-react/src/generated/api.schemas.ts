@@ -60,6 +60,8 @@ export interface RailPlan {
   used: number;
   /** @minimum 0 */
   waste: number;
+  /** @minimum 0 */
+  reusableOffcut: number;
 }
 
 export interface CutPlan {
@@ -70,6 +72,8 @@ export interface CutPlan {
   railCount: number;
   /** @minimum 0 */
   totalWaste: number;
+  /** @minimum 0 */
+  totalReusableOffcut: number;
   rails: RailPlan[];
 }
 

@@ -97,6 +97,8 @@ export const calculateCutPlanResponseRailCountMin = 0;
 
 export const calculateCutPlanResponseTotalWasteMin = 0;
 
+export const calculateCutPlanResponseTotalReusableOffcutMin = 0;
+
 
 
 export const calculateCutPlanResponseRailsItemPiecesItemLengthExclusiveMin = 0;
@@ -105,6 +107,8 @@ export const calculateCutPlanResponseRailsItemUsedMin = 0;
 
 export const calculateCutPlanResponseRailsItemWasteMin = 0;
 
+export const calculateCutPlanResponseRailsItemReusableOffcutMin = 0;
+
 
 
 export const CalculateCutPlanResponse = zod.object({
@@ -112,6 +116,7 @@ export const CalculateCutPlanResponse = zod.object({
   "totalRequested": zod.number().min(calculateCutPlanResponseTotalRequestedMin),
   "railCount": zod.number().int().min(calculateCutPlanResponseRailCountMin),
   "totalWaste": zod.number().min(calculateCutPlanResponseTotalWasteMin),
+  "totalReusableOffcut": zod.number().min(calculateCutPlanResponseTotalReusableOffcutMin),
   "rails": zod.array(zod.object({
   "railNumber": zod.number().int().min(1),
   "pieces": zod.array(zod.object({
@@ -119,7 +124,8 @@ export const CalculateCutPlanResponse = zod.object({
   "length": zod.number().gt(calculateCutPlanResponseRailsItemPiecesItemLengthExclusiveMin)
 })),
   "used": zod.number().min(calculateCutPlanResponseRailsItemUsedMin),
-  "waste": zod.number().min(calculateCutPlanResponseRailsItemWasteMin)
+  "waste": zod.number().min(calculateCutPlanResponseRailsItemWasteMin),
+  "reusableOffcut": zod.number().min(calculateCutPlanResponseRailsItemReusableOffcutMin)
 }))
 })
 
