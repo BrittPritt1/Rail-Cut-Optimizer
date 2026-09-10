@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+**/.tsbuildinfo
+**/tsconfig.tsbuildinfo
+.git
+.gitignore
+.replit
+.replitignore
+.agents
+artifacts/*/.replit-artifact
+.env
+.env.*
+!.env.example
