@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type FormEvent, type ReactNode, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,19 +12,25 @@ import {
   ClipboardList,
   Calculator,
   Info,
+  KeyRound,
   Plus,
   RefreshCw,
   Ruler,
   Scissors,
+  ShieldCheck,
   Trash2,
   X,
 } from 'lucide-react';
 import {
   getListDimensionsQueryKey,
+  getGetAdminSessionQueryKey,
   useCalculateCutPlan,
   useCreateDimension,
   useDeleteDimension,
+  useGetAdminSession,
   useListDimensions,
+  useLockAdminSession,
+  useUnlockAdminSession,
   type CutPlan,
   type Dimension,
 } from '@workspace/api-client-react';
@@ -129,12 +135,14 @@ function DimensionRow({
   onQuantityChange,
   onDelete,
   deleting,
+  canManage,
 }: {
   dimension: Dimension;
   quantity: string;
   onQuantityChange: (value: string) => void;
   onDelete: () => void;
   deleting: boolean;
+  canManage: boolean;
 }) {
   return (
     <div className="group flex flex-wrap items-center gap-3 rounded-xl border border-border/75 bg-card px-3 py-3 transition-colors hover:border-primary/50 sm:flex-nowrap sm:gap-4 sm:px-4" data-testid={`row-dimension-${dimension.id}`}>
@@ -159,17 +167,19 @@ function DimensionRow({
           value={quantity}
         />
       </label>
-      <button
-        aria-label={`Delete ${formatLength(dimension.length)} dimension`}
-        className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
-        data-testid={`button-delete-dimension-${dimension.id}`}
-        disabled={deleting}
-        onClick={onDelete}
-        title="Delete dimension"
-        type="button"
-      >
-        {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-      </button>
+      {canManage && (
+        <button
+          aria-label={`Delete ${formatLength(dimension.length)} dimension`}
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+          data-testid={`button-delete-dimension-${dimension.id}`}
+          disabled={deleting}
+          onClick={onDelete}
+          title="Delete dimension"
+          type="button"
+        >
+          {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -226,12 +236,18 @@ function Home() {
   const createDimension = useCreateDimension();
   const deleteDimension = useDeleteDimension();
   const calculateCutPlan = useCalculateCutPlan();
+  const adminSessionQuery = useGetAdminSession({ query: { queryKey: getGetAdminSessionQueryKey() } });
+  const unlockAdminSession = useUnlockAdminSession();
+  const lockAdminSession = useLockAdminSession();
   const [quantities, setQuantities] = useState<Record<number, string>>({});
   const [newLength, setNewLength] = useState('');
   const [dimensionError, setDimensionError] = useState('');
   const [requestError, setRequestError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [adminPin, setAdminPin] = useState('');
+  const [adminError, setAdminError] = useState('');
 
   const dimensions = dimensionsQuery.data ?? [];
   const requests = useMemo(
@@ -248,6 +264,33 @@ function Home() {
   const totalPieces = requests.reduce((sum, request) => sum + request.quantity, 0);
   const totalRequested = requests.reduce((sum, request) => sum + request.length * request.quantity, 0);
   const plan = calculateCutPlan.data;
+  const isAdmin = adminSessionQuery.data?.authenticated === true;
+
+  const submitAdminPin = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAdminError('');
+    unlockAdminSession.mutate(
+      { data: { pin: adminPin } },
+      {
+        onSuccess: () => {
+          setAdminPin('');
+          setAdminDialogOpen(false);
+          adminSessionQuery.refetch();
+          setSuccessMessage('Admin mode unlocked. You can now manage dimensions.');
+        },
+        onError: () => setAdminError('That PIN was not accepted.'),
+      },
+    );
+  };
+
+  const lockAdminMode = () => {
+    lockAdminSession.mutate(undefined, {
+      onSuccess: () => {
+        adminSessionQuery.refetch();
+        setSuccessMessage('Admin mode locked.');
+      },
+    });
+  };
 
   const addDimension = () => {
     const length = Number(newLength);
@@ -340,6 +383,22 @@ function Home() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3 self-start lg:self-auto">
+                  <button
+                    className="inline-flex h-14 items-center gap-2 rounded-xl border border-border bg-card/80 px-3 text-xs font-bold text-foreground transition-colors hover:border-primary/60 sm:px-4"
+                    data-testid="button-admin-access"
+                    onClick={() => {
+                      if (isAdmin) {
+                        lockAdminMode();
+                      } else {
+                        setAdminError('');
+                        setAdminDialogOpen(true);
+                      }
+                    }}
+                    type="button"
+                  >
+                    {isAdmin ? <ShieldCheck className="h-4 w-4 text-accent-foreground" /> : <KeyRound className="h-4 w-4 text-muted-foreground" />}
+                    <span className="hidden sm:inline">{isAdmin ? 'Admin mode' : 'Admin access'}</span>
+                  </button>
                   <div className="rounded-xl border border-border bg-card/80 px-4 py-3">
                     <div className="mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Stock length</div>
                     <div className="mono mt-1 text-lg font-medium">6.000 m</div>
@@ -367,48 +426,62 @@ function Home() {
                     </div>
                   </div>
 
-                  <div className="mt-6 rounded-xl border border-dashed border-border bg-background/60 p-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <Plus className="ml-1 h-4 w-4 shrink-0 text-muted-foreground" />
-                        <input
-                          aria-label="New dimension length"
-                          className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground/60"
-                          data-testid="input-new-dimension"
-                          inputMode="decimal"
-                          max={STOCK_LENGTH}
-                          min="0"
-                          onChange={(event) => {
-                            setNewLength(event.target.value);
-                            setDimensionError('');
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') addDimension();
-                          }}
-                          placeholder="Add a length, e.g. 2.400"
-                          step="0.001"
-                          type="number"
-                          value={newLength}
-                        />
-                        <span className="mono text-xs text-muted-foreground">metres</span>
+                  {isAdmin ? (
+                    <div className="mt-6 rounded-xl border border-dashed border-border bg-background/60 p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <Plus className="ml-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                          <input
+                            aria-label="New dimension length"
+                            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-muted-foreground/60"
+                            data-testid="input-new-dimension"
+                            inputMode="decimal"
+                            max={STOCK_LENGTH}
+                            min="0"
+                            onChange={(event) => {
+                              setNewLength(event.target.value);
+                              setDimensionError('');
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') addDimension();
+                            }}
+                            placeholder="Add a length, e.g. 2.400"
+                            step="0.001"
+                            type="number"
+                            value={newLength}
+                          />
+                          <span className="mono text-xs text-muted-foreground">metres</span>
+                        </div>
+                        <button
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-sidebar px-4 text-xs font-bold text-sidebar-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                          data-testid="button-add-dimension"
+                          disabled={createDimension.isPending}
+                          onClick={addDimension}
+                          type="button"
+                        >
+                          {createDimension.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                          Add dimension
+                        </button>
                       </div>
+                      {dimensionError && (
+                        <div className="mt-2 flex items-center gap-2 px-1 text-xs text-destructive" data-testid="status-dimension-error">
+                          <AlertTriangle className="h-3.5 w-3.5" /> {dimensionError}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-6 flex items-center gap-3 rounded-xl border border-dashed border-border bg-background/60 px-4 py-3 text-xs text-muted-foreground">
+                      <KeyRound className="h-4 w-4 shrink-0" />
+                      <span>Dimension management is available to the admin. The calculator is open for everyone.</span>
                       <button
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-sidebar px-4 text-xs font-bold text-sidebar-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-                        data-testid="button-add-dimension"
-                        disabled={createDimension.isPending}
-                        onClick={addDimension}
+                        className="ml-auto shrink-0 font-bold text-foreground underline underline-offset-2 hover:text-primary"
+                        onClick={() => setAdminDialogOpen(true)}
                         type="button"
                       >
-                        {createDimension.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                        Add dimension
+                        Unlock
                       </button>
                     </div>
-                    {dimensionError && (
-                      <div className="mt-2 flex items-center gap-2 px-1 text-xs text-destructive" data-testid="status-dimension-error">
-                        <AlertTriangle className="h-3.5 w-3.5" /> {dimensionError}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   <div className="mt-5">
                     {dimensionsQuery.isLoading ? <LoadingRows /> : dimensionsQuery.isError ? (
@@ -445,6 +518,7 @@ function Home() {
                             dimension={dimension}
                             key={dimension.id}
                             onDelete={() => removeDimension(dimension)}
+                            canManage={isAdmin}
                             onQuantityChange={(value) => {
                               setQuantities((current) => ({ ...current, [dimension.id]: value }));
                               setRequestError('');
@@ -562,6 +636,59 @@ function Home() {
               </footer>
             </div>
           </main>
+          {adminDialogOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-sidebar/60 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="admin-dialog-title">
+              <form className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl" onSubmit={submitAdminPin}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      <KeyRound className="h-4 w-4" />
+                      Protected area
+                    </div>
+                    <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.05em]" id="admin-dialog-title">Unlock admin mode</h2>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">Enter the admin PIN to add or remove reusable dimensions. The calculator remains available without it.</p>
+                  </div>
+                  <button
+                    aria-label="Close admin access"
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={() => setAdminDialogOpen(false)}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <label className="mt-6 block text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground" htmlFor="admin-pin">
+                  Admin PIN
+                </label>
+                <input
+                  autoFocus
+                  className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-lg tracking-[0.3em] outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  id="admin-pin"
+                  inputMode="numeric"
+                  onChange={(event) => {
+                    setAdminPin(event.target.value);
+                    setAdminError('');
+                  }}
+                  placeholder="Enter PIN"
+                  type="password"
+                  value={adminPin}
+                />
+                {adminError && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-destructive">
+                    <AlertTriangle className="h-4 w-4" /> {adminError}
+                  </div>
+                )}
+                <button
+                  className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-sidebar text-sm font-extrabold text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!adminPin || unlockAdminSession.isPending}
+                  type="submit"
+                >
+                  {unlockAdminSession.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Unlock admin mode
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </div>

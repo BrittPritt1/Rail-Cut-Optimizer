@@ -28,6 +28,15 @@ export interface DimensionInput {
   length: number;
 }
 
+export interface AdminSession {
+  authenticated: boolean;
+}
+
+export interface AdminSessionInput {
+  /** @minLength 1 */
+  pin: string;
+}
+
 export interface CutRequest {
   /** @minimum 1 */
   dimensionId: number;

@@ -73,6 +73,35 @@ export const DeleteDimensionResponse = zod.void()
 
 
 /**
+ * @summary Check whether the current browser has an admin session
+ */
+export const GetAdminSessionResponse = zod.object({
+  "authenticated": zod.boolean()
+})
+
+
+/**
+ * @summary Unlock admin-only dimension management
+ */
+
+
+
+export const UnlockAdminSessionBody = zod.object({
+  "pin": zod.string().min(1)
+})
+
+export const UnlockAdminSessionResponse = zod.object({
+  "authenticated": zod.boolean()
+})
+
+
+/**
+ * @summary Lock the current admin session
+ */
+export const LockAdminSessionResponse = zod.void()
+
+
+/**
  * @summary Calculate a low-waste cutting plan
  */
 

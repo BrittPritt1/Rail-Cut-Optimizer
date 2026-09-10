@@ -14,6 +14,8 @@ tags:
     description: Reusable aluminium rail cut dimensions
   - name: cutting
     description: Low-waste rail cutting calculations
+  - name: admin
+    description: Admin-only dimension management session
 paths:
   /healthz:
     get:
@@ -81,6 +83,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      tags: [admin]
+      summary: Check whether the current browser has an admin session
+      responses:
+        "200":
+          description: Current admin session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+    post:
+      operationId: unlockAdminSession
+      tags: [admin]
+      summary: Unlock admin-only dimension management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminSessionInput"
+      responses:
+        "200":
+          description: Admin session unlocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Incorrect PIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: lockAdminSession
+      tags: [admin]
+      summary: Lock the current admin session
+      responses:
+        "204":
+          description: Admin session locked
   /cut-plans:
     post:
       operationId: calculateCutPlan
@@ -144,6 +188,19 @@ components:
           exclusiveMinimum: 0
           maximum: 6
       required: [length]
+    AdminSession:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+      required: [authenticated]
+    AdminSessionInput:
+      type: object
+      properties:
+        pin:
+          type: string
+          minLength: 1
+      required: [pin]
     CutRequest:
       type: object
       properties:

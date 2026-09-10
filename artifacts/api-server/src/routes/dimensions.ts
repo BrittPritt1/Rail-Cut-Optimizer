@@ -7,6 +7,7 @@ import {
   ListDimensionsResponse,
 } from "@workspace/api-zod";
 import { db, dimensionsTable } from "@workspace/db";
+import { requireAdmin } from "../lib/admin-auth";
 
 const router: IRouter = Router();
 
@@ -19,7 +20,7 @@ router.get("/dimensions", async (_req, res): Promise<void> => {
   res.json(ListDimensionsResponse.parse(dimensions));
 });
 
-router.post("/dimensions", async (req, res): Promise<void> => {
+router.post("/dimensions", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateDimensionBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -34,7 +35,7 @@ router.post("/dimensions", async (req, res): Promise<void> => {
   res.status(201).json(CreateDimensionResponse.parse(dimension));
 });
 
-router.delete("/dimensions/:id", async (req, res): Promise<void> => {
+router.delete("/dimensions/:id", requireAdmin, async (req, res): Promise<void> => {
   const parsed = DeleteDimensionParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

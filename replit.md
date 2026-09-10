@@ -34,12 +34,15 @@ Plan low-waste cuts from 6-meter aluminium rails by reusing saved dimensions and
 - API contracts are defined in OpenAPI and generated into typed React Query hooks and Zod schemas.
 - The cut planner uses a strategy boundary: best-fit decreasing provides a fast upper bound, then bounded branch-and-bound searches for fewer rails.
 - Offcuts are classified against the full saved dimension collection, so reusable material is separated from true unusable waste even when its quantity is zero in the current plan.
+- Calculator access is public; dimension changes require a server-validated admin PIN and an HttpOnly session cookie.
 - Route handlers stay thin; validation and persistence live at the boundary while optimization remains framework-independent.
 - Dimensions are stored as reusable server-side records and the initial set is seeded with the common 6-meter stock cuts.
 
 ## Product
 
 - Manage reusable aluminium cut dimensions.
+- Use the calculator publicly without an account.
+- Unlock admin mode to add or remove saved dimensions.
 - Enter a quantity for each saved dimension.
 - Calculate a low-waste arrangement across 6-meter rails.
 - Review each rail's cuts, used length, and offcut.
